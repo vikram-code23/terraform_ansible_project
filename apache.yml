@@ -20,5 +20,5 @@
       copy:
         dest: /var/www/html/index.html
         content: |
-          <h1>Deployed by Ansible , Developed by vikram vk, go ahead</h1>
+          <h1>Deployed by Ansible , Developed by vikram vk, go ahead with scripting</h1>
           <h2>Vikram's Terraform + Jenkins + Ansible Project</h2>

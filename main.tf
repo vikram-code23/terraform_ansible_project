@@ -1,6 +1,6 @@
 #1.vpc
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = var.vpc_cidr
 
   tags = {
     Name = "terraform-vpc"
@@ -12,7 +12,9 @@ resource "aws_subnet" "public_subnet" {
 
   vpc_id = aws_vpc.main.id
 
-  cidr_block = "10.0.1.0/24"
+  cidr_block = var.public_subnet_cidr
+
+  availability_zone = var.public_az
 
   map_public_ip_on_launch = true
     
@@ -26,7 +28,9 @@ resource "aws_subnet" "private_subnet" {
 
   vpc_id = aws_vpc.main.id
 
-  cidr_block = "10.0.2.0/24"
+  cidr_block = var.private_subnet_cidr
+
+  availability_zone = var.private_az
 
   tags = {
     Name = "terraform-private-subnet1"
@@ -134,6 +138,15 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
+resource "aws_eip" "web_eip" {
+  domain = "vpc"
+}
+
+resource "aws_eip_association" "eip_assoc" {
+  instance_id   = aws_instance.web_server1.id
+  allocation_id = aws_eip.web_eip.id
+}
+
 #ami id
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -152,31 +165,36 @@ data "aws_ami" "ubuntu" {
 }
 
 #Create EC2 instance
-resource "aws_instance" "web_server" {
+resource "aws_instance" "web_server1" {
 
   ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
 
-  instance_type = "t3.micro"
-
-  key_name = "terraform-key"
+  key_name = var.key_name
 
   subnet_id = aws_subnet.public_subnet.id
 
-  associate_public_ip_address = true
+  #associate_public_ip_address = true
 
   vpc_security_group_ids = [
     aws_security_group.web_sg.id
   ]
+
+ user_data = file("${path.module}/scripts/install_apache.sh")
 
   tags = {
     Name = "terraform-web-server"
   }
 }
 
-output "instance_id" {
-  value = aws_instance.web_server.id
-}
+resource "local_file" "ansible_inventory" {
 
-output "public_ip" {
-  value = aws_instance.web_server.public_ip
+  content = templatefile(
+    "${path.module}/inventory.tpl",
+    {
+      public_ip = aws_eip.web_eip.public_ip
+    }
+  )
+
+  filename = "${path.module}/inventory.ini"
 }

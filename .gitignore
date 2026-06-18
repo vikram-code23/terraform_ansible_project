@@ -1,8 +1,9 @@
 *.pem
 
 .terraform/
-
+terraform.tfvars
 *.tfstate
 *.tfstate.*
-
+*.tfstate.backup
+inventory.ini
 .terraform.lock.hcl

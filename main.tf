@@ -17,7 +17,7 @@ resource "aws_subnet" "public_subnet" {
   availability_zone = var.public_az
 
   map_public_ip_on_launch = true
-    
+
   tags = {
     Name = "terraform-public-subnet1"
   }
@@ -39,11 +39,11 @@ resource "aws_subnet" "private_subnet" {
 
 #4.Internet gateway
 resource "aws_internet_gateway" "igw" {
-    vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.main.id
 
-    tags = {
-        Name = "terraform-igw"
-    }
+  tags = {
+    Name = "terraform-igw"
+  }
 }
 
 #5. public Route Table
@@ -70,7 +70,7 @@ resource "aws_route_table" "private_rt" {
 
 #7.Add public route
 resource "aws_route" "public_route" {
-  
+
   route_table_id = aws_route_table.public_rt.id
 
   destination_cidr_block = "0.0.0.0/0"
@@ -107,9 +107,9 @@ resource "aws_security_group" "web_sg" {
   ingress {
     description = "SSH"
 
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
 
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -117,18 +117,18 @@ resource "aws_security_group" "web_sg" {
   ingress {
     description = "HTTP"
 
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
 
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
 
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
 
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -180,7 +180,8 @@ resource "aws_instance" "web_server1" {
     aws_security_group.web_sg.id
   ]
 
- user_data = file("${path.module}/scripts/install_apache.sh")
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
+  user_data            = file("${path.module}/scripts/install_apache.sh")
 
   tags = {
     Name = "terraform-web-server"

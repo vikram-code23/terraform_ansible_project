@@ -25,6 +25,12 @@ module "iam" {
   source = "./modules/iam"
 }
 
+module "s3" {
+  source = "./modules/s3"
+
+  bucket_name = "vk-terraform-demo-bucket-2026"
+}
+
 resource "local_file" "ansible_inventory" {
 
   content = templatefile(

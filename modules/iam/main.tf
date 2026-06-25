@@ -142,3 +142,94 @@ resource "aws_iam_user_group_membership" "intern_membership" {
   ]
 }
 
+# IAM Role for EC2
+
+resource "aws_iam_role" "ec2_s3_role" {
+  name = "EC2-S3-Role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+#--------- Attach S3 policy----------------------
+
+resource "aws_iam_role_policy_attachment" "s3_readonly" {
+  role       = aws_iam_role.ec2_s3_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+}
+
+#----------Create Instance Profile---------------------------
+#----------EC2 cannot directly use a Role----
+#Role -> Instance Profile -> EC2
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "EC2-S3-Profile"
+  role = aws_iam_role.ec2_s3_role.name
+}
+
+resource "aws_iam_user_login_profile" "developer_login" {
+  user = aws_iam_user.developer_user.name
+
+  password_reset_required = true
+}
+
+resource "aws_iam_user_login_profile" "developer2_login" {
+  user = aws_iam_user.developer2_user.name
+
+  password_reset_required = true
+}
+
+resource "aws_iam_user_login_profile" "devops_login" {
+  user = aws_iam_user.devops_user.name
+
+  password_reset_required = true
+}
+
+resource "aws_iam_user_login_profile" "qa_login" {
+  user = aws_iam_user.qa_user.name
+
+  password_reset_required = true
+}
+
+resource "aws_iam_user_login_profile" "founder_login" {
+  user = aws_iam_user.founder_user.name
+
+  password_reset_required = true
+}
+
+resource "aws_iam_user_login_profile" "intern_login" {
+  user = aws_iam_user.intern_user.name
+
+  password_reset_required = true
+}
+
+# ---------------- ACCOUNT PASSWORD POLICY ----------------
+
+resource "aws_iam_account_password_policy" "password_policy" {
+
+  minimum_password_length = 8
+
+  require_lowercase_characters = true
+  require_uppercase_characters = true
+  require_numbers              = true
+  require_symbols              = true
+
+  allow_users_to_change_password = true
+
+  max_password_age = 90
+
+  password_reuse_prevention = 6
+}

@@ -1,191 +1,28 @@
-#1.vpc
-resource "aws_vpc" "main" {
-  cidr_block = var.vpc_cidr
+module "vpc" {
+  source = "./modules/vpc"
 
-  tags = {
-    Name = "terraform-vpc"
-  }
+  vpc_cidr            = var.vpc_cidr
+  public_subnet_cidr  = var.public_subnet_cidr
+  private_subnet_cidr = var.private_subnet_cidr
+
+  public_az  = var.public_az
+  private_az = var.private_az
 }
 
-#2.public subnet 
-resource "aws_subnet" "public_subnet" {
+module "ec2" {
+  source = "./modules/ec2"
 
-  vpc_id = aws_vpc.main.id
-
-  cidr_block = var.public_subnet_cidr
-
-  availability_zone = var.public_az
-
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "terraform-public-subnet1"
-  }
-}
-
-#3. private subnet
-resource "aws_subnet" "private_subnet" {
-
-  vpc_id = aws_vpc.main.id
-
-  cidr_block = var.private_subnet_cidr
-
-  availability_zone = var.private_az
-
-  tags = {
-    Name = "terraform-private-subnet1"
-  }
-}
-
-#4.Internet gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "terraform-igw"
-  }
-}
-
-#5. public Route Table
-
-resource "aws_route_table" "public_rt" {
-
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "terraform-public-rt"
-  }
-}
-
-#6. private Route Table
-
-resource "aws_route_table" "private_rt" {
-
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "terraform-private-rt"
-  }
-}
-
-#7.Add public route
-resource "aws_route" "public_route" {
-
-  route_table_id = aws_route_table.public_rt.id
-
-  destination_cidr_block = "0.0.0.0/0"
-
-  gateway_id = aws_internet_gateway.igw.id
-
-}
-
-#8. Public Route Table Association
-
-resource "aws_route_table_association" "public_assoc" {
-
-  subnet_id = aws_subnet.public_subnet.id
-
-  route_table_id = aws_route_table.public_rt.id
-}
-
-#9. Private route table association
-
-resource "aws_route_table_association" "private_assoc" {
-  subnet_id = aws_subnet.private_subnet.id
-
-  route_table_id = aws_route_table.private_rt.id
-}
-
-#10. Security Group
-
-resource "aws_security_group" "web_sg" {
-
-  name        = "web-sg"
-  description = "Allow SSH and HTTP"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "SSH"
-
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTP"
-
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "web-sg"
-  }
-}
-
-resource "aws_eip" "web_eip" {
-  domain = "vpc"
-}
-
-resource "aws_eip_association" "eip_assoc" {
-  instance_id   = aws_instance.web_server1.id
-  allocation_id = aws_eip.web_eip.id
-}
-
-#ami id
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  owners = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-#Create EC2 instance
-resource "aws_instance" "web_server1" {
-
-  ami           = data.aws_ami.ubuntu.id
   instance_type = var.instance_type
+  key_name      = var.key_name
 
-  key_name = var.key_name
+  subnet_id        = module.vpc.public_subnet_id
+  security_group_id = module.vpc.security_group_id
 
-  subnet_id = aws_subnet.public_subnet.id
+  instance_profile_name = module.iam.instance_profile_name
+}
 
-  #associate_public_ip_address = true
-
-  vpc_security_group_ids = [
-    aws_security_group.web_sg.id
-  ]
-
-  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
-  user_data            = file("${path.module}/scripts/install_apache.sh")
-
-  tags = {
-    Name = "terraform-web-server"
-  }
+module "iam" {
+  source = "./modules/iam"
 }
 
 resource "local_file" "ansible_inventory" {
@@ -193,9 +30,10 @@ resource "local_file" "ansible_inventory" {
   content = templatefile(
     "${path.module}/inventory.tpl",
     {
-      public_ip = aws_eip.web_eip.public_ip
+      public_ip = module.ec2.public_ip
     }
   )
 
   filename = "${path.module}/inventory.ini"
 }
+

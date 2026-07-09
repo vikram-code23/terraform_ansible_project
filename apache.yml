@@ -10,15 +10,30 @@
         state: present
         update_cache: yes
 
-    - name: Start Apache
+    - name: Start and Enable Apache
       service:
         name: apache2
         state: started
         enabled: yes
 
-    - name: Create custom webpage
+    - name: Remove default Apache files
+      file:
+        path: /var/www/html
+        state: absent
+
+    - name: Create web root directory
+      file:
+        path: /var/www/html
+        state: directory
+        mode: '0755'
+
+    - name: Copy Vishnu IT Solutions website files
       copy:
-        dest: /var/www/html/index.html
-        content: |
-          <h1>Auto Deployed From Jenkins CI/CD Pipeline successfully</h1>
-          <h2>Vikram's Terraform + Jenkins + Ansible Project</h2>
+        src: ./projects/vishnu-it-solutions/app/
+        dest: /var/www/html/
+        mode: '0644'
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted

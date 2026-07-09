@@ -8,6 +8,11 @@ pipeline {
                 checkout scm
             }
         }
+        stage('Wait for EC2') {
+            steps {
+                bat 'timeout /t 60'
+            }
+        }
 
         stage('Build Docker Image') {
             steps {

@@ -1,0 +1,14 @@
+apiVersion: v1
+
+kind: ConfigMap
+
+metadata:
+  name: website-config
+  namespace: dev
+
+data:
+  COMPANY_NAME: "Vishnu IT Solutions"
+  COMPANY_EMAIL: "contact@vishnuit.com"
+  COMPANY_PHONE: "+91-9042594279"
+  COMPANY_LOCATION: "Chennai, India"
+  ENVIRONMENT: "Development"

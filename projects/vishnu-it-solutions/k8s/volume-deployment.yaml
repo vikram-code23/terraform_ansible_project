@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: vishnu-website
+  namespace: dev
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: vishnu-website
+
+  template:
+    metadata:
+      labels:
+        app: vishnu-website
+
+    spec:
+      containers:
+      - name: website-container
+        image: vishnu-it-solutions:latest
+        imagePullPolicy: Never
+
+        ports:
+        - containerPort: 80
+
+        envFrom:
+        - configMapRef:
+            name: website-config
+
+        - secretRef:
+            name: website-secret
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+        volumeMounts:
+        - name: website-storage
+          mountPath: /usr/share/nginx/html/uploads
+
+      volumes:
+      - name: website-storage
+        persistentVolumeClaim:
+          claimName: website-pvc

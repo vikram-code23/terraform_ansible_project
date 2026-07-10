@@ -1,0 +1,91 @@
+---
+- hosts: web
+  become: yes
+
+  tasks:
+
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+
+    - name: Start and Enable Apache
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+    - name: Remove default Apache files
+      file:
+        path: /var/www/html
+        state: absent
+
+    - name: Create web root directory
+      file:
+        path: /var/www/html
+        state: directory
+        mode: '0755'
+
+    - name: Copy Vishnu IT Solutions website files
+      copy:
+        src: ./projects/vishnu-it-solutions/app/
+        dest: /var/www/html/
+        mode: '0644'
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Download Node Exporter
+      get_url:
+        url: https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz
+        dest: /home/ubuntu/node_exporter.tar.gz
+
+    - name: Extract Node Exporter
+      unarchive:
+        src: /home/ubuntu/node_exporter.tar.gz
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: Copy node_exporter service
+      copy:
+        src: files/node_exporter.service
+        dest: /etc/systemd/system/node_exporter.service
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable Node Exporter
+      systemd:
+        name: node_exporter
+        enabled: yes
+        state: restarted
+
+    - name: Download Blackbox Exporter
+      get_url:
+        url: https://github.com/prometheus/blackbox_exporter/releases/download/v0.27.0/blackbox_exporter-0.27.0.linux-amd64.tar.gz
+        dest: /home/ubuntu/blackbox_exporter.tar.gz
+
+    - name: Extract Blackbox Exporter
+      unarchive:
+        src: /home/ubuntu/blackbox_exporter.tar.gz
+        dest: /home/ubuntu/
+        remote_src: yes
+
+    - name: Copy blackbox service
+      copy:
+        src: files/blackbox_exporter.service
+        dest: /etc/systemd/system/blackbox_exporter.service
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable Blackbox Exporter
+      systemd:
+        name: blackbox_exporter
+        enabled: yes
+        state: restarted

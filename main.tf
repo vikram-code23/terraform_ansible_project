@@ -15,7 +15,7 @@ module "ec2" {
   instance_type = var.instance_type
   key_name      = var.key_name
 
-  subnet_id        = module.vpc.public_subnet_id
+  subnet_id         = module.vpc.public_subnet_id
   security_group_id = module.vpc.security_group_id
 
   instance_profile_name = module.iam.instance_profile_name

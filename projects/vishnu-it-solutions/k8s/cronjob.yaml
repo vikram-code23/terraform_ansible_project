@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: website-backup-cronjob
+
+spec:
+  schedule: "*/1 * * * *"
+
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup-container
+            image: busybox
+
+            command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /backup
+              echo "Backup Time : $(date)" > /backup/backup.txt
+              cat /backup/backup.txt
+              sleep 5
+
+          restartPolicy: OnFailure
